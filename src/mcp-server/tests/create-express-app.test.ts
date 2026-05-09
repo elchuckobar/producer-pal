@@ -459,9 +459,13 @@ describe("MCP Express App", () => {
 
   describe("Chat UI", () => {
     let chatUrl: string;
+    let contextUrl: string;
+    let rootUrl: string;
 
     beforeAll(() => {
       chatUrl = appState.serverUrl.replace("/mcp", "/chat");
+      contextUrl = appState.serverUrl.replace("/mcp", "/context");
+      rootUrl = appState.serverUrl.replace("/mcp", "/");
     });
 
     it("should serve chat UI when enabled", async () => {
@@ -474,6 +478,23 @@ describe("MCP Express App", () => {
 
       expect(html).toBeDefined();
       expect(html.length).toBeGreaterThan(0);
+    });
+
+    it("should serve same UI bundle at /context", async () => {
+      const response = await fetch(contextUrl);
+
+      expect(response.status).toBe(200);
+      expect(response.headers.get("content-type")).toContain("html");
+      const html = await response.text();
+
+      expect(html.length).toBeGreaterThan(0);
+    });
+
+    it("should redirect / to /chat", async () => {
+      const response = await fetch(rootUrl, { redirect: "manual" });
+
+      expect(response.status).toBe(302);
+      expect(response.headers.get("location")).toBe("/chat");
     });
 
     it("should return 403 when chat UI is disabled", async () => {
@@ -490,15 +511,18 @@ describe("MCP Express App", () => {
       const testServer = await new Promise<Server>((resolve) => {
         const s = testApp.listen(0, () => resolve(s));
       });
-      const testChatUrl = `http://localhost:${(testServer.address() as AddressInfo).port}/chat`;
+      const baseUrl = `http://localhost:${(testServer.address() as AddressInfo).port}`;
 
       try {
-        const response = await fetch(testChatUrl);
+        const chatResponse = await fetch(`${baseUrl}/chat`);
 
-        expect(response.status).toBe(403);
-        const text = await response.text();
+        expect(chatResponse.status).toBe(403);
+        expect(await chatResponse.text()).toBe("Chat UI is disabled");
 
-        expect(text).toBe("Chat UI is disabled");
+        const contextResponse = await fetch(`${baseUrl}/context`);
+
+        expect(contextResponse.status).toBe(403);
+        expect(await contextResponse.text()).toBe("Chat UI is disabled");
       } finally {
         // Clean up and re-enable for other tests
         await new Promise<void>((resolve) => testServer.close(() => resolve()));
