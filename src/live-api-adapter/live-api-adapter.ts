@@ -27,6 +27,7 @@ import { select } from "#src/tools/control/select.ts";
 import { createDevice } from "#src/tools/device/create/create-device.ts";
 import { readDevice } from "#src/tools/device/read/read-device.ts";
 import { updateDevice } from "#src/tools/device/update/update-device.ts";
+import { library } from "#src/tools/library/library.ts";
 import { readLiveSet } from "#src/tools/live-set/read-live-set.ts";
 import { updateLiveSet } from "#src/tools/live-set/update-live-set.ts";
 import { deleteObject } from "#src/tools/operations/delete/delete.ts";
@@ -40,6 +41,7 @@ import { updateTrack } from "#src/tools/track/update/update-track.ts";
 import { connect } from "#src/tools/workflow/connect.ts";
 import { context as contextTool } from "#src/tools/workflow/context.ts";
 import { handleCodeExecResult } from "./code-exec-v8-protocol.ts";
+import { handleNodeResponse } from "./node-request-v8-protocol.ts";
 
 // Configure 2 outlets: MCP responses (0) and warnings (1)
 outlets = 2;
@@ -137,6 +139,7 @@ const tools: Record<string, (args: unknown, ctx: ToolContext) => unknown> = {
     return duplicate(args as any, ctx);
   },
   "ppal-context": (args, ctx) => contextTool(args as any, ctx),
+  "ppal-library": (args, ctx) => library(args as any, ctx),
   "ppal-raw-live-api": (args, ctx) => rawLiveApi(args as any, ctx),
 };
 /* eslint-enable @typescript-eslint/no-explicit-any -- end of tools dispatch section */
@@ -269,6 +272,16 @@ function sendResponse(requestId: string, result: object): void {
  */
 export function code_exec_result(requestId: string, resultJson: string): void {
   handleCodeExecResult(requestId, resultJson);
+}
+
+/**
+ * Handle node_response message from Node after a node_request route ran.
+ *
+ * @param requestId - Request identifier
+ * @param responseJson - JSON string of NodeResponse
+ */
+export function node_response(requestId: string, responseJson: string): void {
+  handleNodeResponse(requestId, responseJson);
 }
 
 // Handle messages from Node for Max
