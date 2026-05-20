@@ -142,15 +142,22 @@ function appendSaveStep(steps: RunbookStep[], opts: RecordOptions): void {
   }
 
   if (saveAfter === "save-as") {
+    // Without savePath the Save-As workflow cannot complete cleanly: emitting
+    // cmd+shift+s would open a modal dialog with no follow-up steps, leaving
+    // the recipe stuck and `verify.setDirty` lying about save status. The
+    // caller was already informed via the warn + notes path in
+    // record-arrangement.ts; emit nothing here so the recipe ends with the
+    // transport stopped but the set still dirty.
+    if (opts.savePath == null) {
+      return;
+    }
+
     steps.push({
       action: "key",
       text: "cmd+shift+s",
       label: "Save Set As (cmd+shift+s)",
     });
-
-    if (opts.savePath != null) {
-      appendSaveDialogPathInput(steps, opts.savePath);
-    }
+    appendSaveDialogPathInput(steps, opts.savePath);
   }
 }
 

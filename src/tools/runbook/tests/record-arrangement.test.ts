@@ -102,7 +102,7 @@ describe("ppal-record-arrangement runbook", () => {
     expect(labels).toContain("type parent directory /Users/x/sets");
   });
 
-  it("saveAfter='save-as' without savePath warns and notes the missing path", async () => {
+  it("saveAfter='save-as' without savePath warns, notes the missing path, and emits NO save steps (Codex CRITICAL fix)", async () => {
     const consoleModule = await import("#src/shared/v8-max-console.ts");
     const warn = vi.spyOn(consoleModule, "warn").mockImplementation(() => {});
 
@@ -119,7 +119,9 @@ describe("ppal-record-arrangement runbook", () => {
     ).toBe(true);
     const labels = result.steps.map((s) => s.label);
 
-    expect(labels).toContain("Save Set As (cmd+shift+s)");
+    // Recipe must NOT emit cmd+shift+s alone — would open a modal dialog
+    // with no follow-up steps. Caller is informed via warn+notes only.
+    expect(labels).not.toContain("Save Set As (cmd+shift+s)");
     expect(labels.some((l) => l.startsWith("type parent directory"))).toBe(
       false,
     );
