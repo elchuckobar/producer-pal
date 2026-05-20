@@ -58,7 +58,12 @@ export function recordArrangement(
   const notes: string[] = [];
   const steps: RunbookStep[] = [];
 
-  if (args.saveAfter === "save-as" && args.savePath == null) {
+  // Treat empty string as missing so callers can't sneak a no-op dialog past
+  // the warn path by passing "".
+  if (
+    args.saveAfter === "save-as" &&
+    (args.savePath == null || args.savePath === "")
+  ) {
     console.warn(
       "ppal-record-arrangement: saveAfter='save-as' requires savePath; emitting cmd+shift+s but caller must fill the dialog",
     );
@@ -67,23 +72,29 @@ export function recordArrangement(
     );
   }
 
+  // Empty-string savePath is normalised to undefined so downstream helpers
+  // do not have to repeat the empty-vs-null guard.
+  const normalisedSavePath =
+    args.savePath != null && args.savePath !== "" ? args.savePath : undefined;
+
   appendRecordArrangementSteps(steps, {
     durationSeconds: args.durationSeconds,
     view: args.view,
     homeBeforeRecord: args.homeBeforeRecord,
     saveAfter: args.saveAfter,
-    savePath: args.savePath,
+    savePath: normalisedSavePath,
   });
 
   const baseSeconds = args.durationSeconds ?? 0;
-  const overheadSeconds = 1 + (args.saveAfter === "none" ? 0 : 0.4);
+  const saveMode = args.saveAfter ?? "none";
+  const overheadSeconds = 1 + (saveMode === "none" ? 0 : 0.4);
 
   return {
     steps,
     failModes: buildFailModes(),
     verify: {
       transportShouldBeStopped: true,
-      setDirty: args.saveAfter === "none",
+      setDirty: saveMode === "none",
     },
     meta: {
       tool: "ppal-record-arrangement",

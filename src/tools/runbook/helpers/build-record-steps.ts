@@ -46,13 +46,14 @@ export function appendRecordArrangementSteps(
   steps: RunbookStep[],
   opts: RecordOptions,
 ): void {
-  const view = opts.view ?? "arrangement";
-
-  if (view === "arrangement") {
+  // We do NOT auto-press Tab to "ensure arrangement view" — Tab toggles
+  // Session<->Arrangement, so it would silently flip the view if Live were
+  // already in Arrangement. Instead we emit a screenshot anchor so the caller
+  // can verify the view via vision and dispatch Tab themselves if needed.
+  if (opts.view != null) {
     steps.push({
-      action: "key",
-      text: "Tab",
-      label: "ensure Arrangement view",
+      action: "screenshot",
+      label: `anchor: caller must verify '${opts.view}' view before record`,
     });
   }
 
@@ -116,6 +117,12 @@ export function splitSavePath(savePath: string): {
   dir: string;
   name: string;
 } {
+  if (savePath.length === 0 || savePath.endsWith("/")) {
+    throw new Error(
+      `splitSavePath: savePath must include a filename (got: '${savePath}')`,
+    );
+  }
+
   const lastSlash = savePath.lastIndexOf("/");
 
   if (lastSlash < 0) {
