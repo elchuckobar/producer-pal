@@ -37,8 +37,10 @@ export const RENDER_DIALOG_ANCHORS = {
   fileTypeListItemWav: [741, 495] as [number, number],
   fileTypeListItemAiff: [741, 509] as [number, number],
   fileTypeListItemFlac: [741, 523] as [number, number],
-  bitDepthDropdown: [776, 499] as [number, number],
-  ditherDropdown: [763, 519] as [number, number],
+  // bitDepth + dither dropdowns are intentionally NOT exposed via the
+  // runbook (the per-row pixel anchors were never reconned). Set those
+  // values manually in Live's Export dialog before invoking the tool. See
+  // render-export.ts for the meta.notes documentation.
   toggleMp3Encoding: [776, 563] as [number, number],
   exportButton: [655, 683] as [number, number],
   cancelButton: [719, 683] as [number, number],
