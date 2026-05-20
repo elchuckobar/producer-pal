@@ -3,16 +3,15 @@
 // AI assistance: Claude (Anthropic)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-/**
- * Atomic step in a computer-use runbook. Mirrors mcp__computer-use__* tool
- * names so the caller can dispatch them with no translation.
- */
-export type RunbookStep =
-  | { action: "key"; text: string; label: string }
-  | { action: "wait"; duration: number; label: string }
-  | { action: "left_click"; coordinate: [number, number]; label: string }
-  | { action: "type"; text: string; label: string }
-  | { action: "screenshot"; label: string };
+import {
+  appendSaveDialog,
+  type RunbookStep,
+  splitDestPath,
+} from "./build-render-steps.ts";
+
+// Re-export so callers in slice 2 don't have to know which sibling helper
+// owns the canonical type definition.
+export { type RunbookStep };
 
 /**
  * Live's transport-bar pixel anchors. Captured during the Welle-3 recon pass
@@ -107,33 +106,10 @@ export function appendRecordArrangementSteps(
   });
 }
 
-/**
- * Split an absolute or relative .als path into parent dir + filename. No
- * filesystem access - pure string utility.
- * @param savePath - Full path including filename and extension.
- * @returns Object with dir and name.
- */
-export function splitSavePath(savePath: string): {
-  dir: string;
-  name: string;
-} {
-  if (savePath.length === 0 || savePath.endsWith("/")) {
-    throw new Error(
-      `splitSavePath: savePath must include a filename (got: '${savePath}')`,
-    );
-  }
-
-  const lastSlash = savePath.lastIndexOf("/");
-
-  if (lastSlash < 0) {
-    return { dir: ".", name: savePath };
-  }
-
-  const dir = savePath.slice(0, lastSlash);
-  const name = savePath.slice(lastSlash + 1);
-
-  return { dir: dir.length === 0 ? "/" : dir, name };
-}
+// Re-export splitDestPath under the slice-2 name `splitSavePath` for callers
+// (tests) that import the savePath-flavored alias. The Slice-1 helper
+// already throws on empty/trailing-slash input and returns the same shape.
+export { splitDestPath as splitSavePath };
 
 /**
  * Append the save step matching the saveAfter mode. Falls back to a warn-
@@ -174,7 +150,10 @@ function appendSaveStep(steps: RunbookStep[], opts: RecordOptions): void {
 
 /**
  * Append the macOS save-dialog "Go To Folder" + filename overwrite sequence.
- * Used after a cmd+shift+s has been pressed.
+ * Reuses Slice-1's `appendSaveDialog` and drops its leading "click
+ * Exportieren" step (Record uses cmd+shift+s instead of an Export-button
+ * click to open the dialog). The remaining steps are identical, so we share
+ * the helper instead of duplicating ~50 lines.
  * @param steps - Step array being built.
  * @param savePath - Absolute or relative file path.
  */
@@ -182,51 +161,13 @@ function appendSaveDialogPathInput(
   steps: RunbookStep[],
   savePath: string,
 ): void {
-  const { dir, name } = splitSavePath(savePath);
+  // Eager validation so the throw fires at this helper rather than inside
+  // the shared appendSaveDialog (clearer stack for slice-2 callers).
+  splitDestPath(savePath);
 
-  steps.push({
-    action: "wait",
-    duration: 0.5,
-    label: "wait for macOS save dialog",
-  });
-  steps.push({
-    action: "key",
-    text: "cmd+shift+g",
-    label: "open Gehe zu Ordner",
-  });
-  steps.push({
-    action: "wait",
-    duration: 0.2,
-    label: "wait for goto-folder sheet",
-  });
-  steps.push({
-    action: "type",
-    text: dir,
-    label: `type parent directory ${dir}`,
-  });
-  steps.push({
-    action: "key",
-    text: "Return",
-    label: "commit parent directory",
-  });
-  steps.push({
-    action: "wait",
-    duration: 0.3,
-    label: "wait for save dialog focus return",
-  });
-  steps.push({
-    action: "key",
-    text: "cmd+a",
-    label: "select existing filename",
-  });
-  steps.push({
-    action: "type",
-    text: name,
-    label: `type filename ${name}`,
-  });
-  steps.push({
-    action: "key",
-    text: "Return",
-    label: "save Set",
-  });
+  const sliceSteps: RunbookStep[] = [];
+
+  appendSaveDialog(sliceSteps, { destPath: savePath });
+  // Drop the first step ("click Exportieren") - record uses cmd+shift+s.
+  steps.push(...sliceSteps.slice(1));
 }

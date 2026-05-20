@@ -215,9 +215,9 @@ describe("ppal-record-arrangement runbook", () => {
   it("splitSavePath throws on empty string or trailing slash (cannot derive filename)", async () => {
     const { splitSavePath } = await import("../helpers/build-record-steps.ts");
 
-    expect(() => splitSavePath("")).toThrow(/savePath must include a filename/);
+    expect(() => splitSavePath("")).toThrow(/destPath must include a filename/);
     expect(() => splitSavePath("/foo/")).toThrow(
-      /savePath must include a filename/,
+      /destPath must include a filename/,
     );
   });
 
