@@ -22,23 +22,15 @@ export const toolDefRenderExport = defineTool("ppal-render-export", {
       .describe("output audio format"),
     destPath: z
       .string()
-      .describe("absolute output path including filename and extension"),
+      .min(1)
+      .describe(
+        "absolute output path including filename and extension; must not end with '/'",
+      ),
     bitDepth: z.coerce
       .number()
       .int()
       .optional()
       .describe("PCM bit depth: 16, 24, or 32; ignored for mp3"),
-    sampleRate: z.coerce
-      .number()
-      .int()
-      .optional()
-      .describe(
-        "render sample rate; default = current project sample rate (UI shows 'Das Projekt wird mit X Hz gerendert.')",
-      ),
-    renderTrack: z
-      .string()
-      .optional()
-      .describe("rendered track name; default 'Main'"),
     renderStart: z
       .string()
       .optional()
@@ -61,16 +53,11 @@ export const toolDefRenderExport = defineTool("ppal-render-export", {
       .optional()
       .describe("toggle 'Analyse-Datei erzeugen' (default: An)"),
     dither: z
-      .enum([
-        "triangular",
-        "rectangular",
-        "pow-r-1",
-        "pow-r-2",
-        "pow-r-3",
-        "none",
-      ])
+      .enum(["default", "none"])
       .optional()
-      .describe("dither mode for PCM 16-bit; ignored otherwise"),
+      .describe(
+        "PCM dither: 'none' emits a toggle step that disables the dither dropdown's default Triangular setting; 'default' (or omitted) leaves the dropdown alone. Only 16-bit PCM uses dither in Live; for other bit depths the step is still emitted but harmless. Use 'none' for stem renders that downstream gear redithers.",
+      ),
     abletonLocale: z
       .enum(["de", "en", "unknown"])
       .optional()

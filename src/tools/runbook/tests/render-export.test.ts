@@ -92,20 +92,62 @@ describe("ppal-render-export runbook", () => {
     warn.mockRestore();
   });
 
-  it("MP3 + dither also warns and ignores", async () => {
+  it("MP3 + dither='none' warns and ignores (mp3 has no dither stage)", async () => {
     const consoleModule = await import("#src/shared/v8-max-console.ts");
     const warn = vi.spyOn(consoleModule, "warn").mockImplementation(() => {});
 
-    renderExport({
+    const result = renderExport({
       format: "mp3",
       destPath: "/tmp/mix.mp3",
-      dither: "triangular",
+      dither: "none",
     });
 
     expect(warn).toHaveBeenCalledWith(
       expect.stringContaining("dither ignored for mp3"),
     );
+    expect(result.meta.notes).toContain(
+      "dither ignored: only applies to PCM formats",
+    );
     warn.mockRestore();
+  });
+
+  it("PCM (wav) + dither='none' emits the Dither dropdown sequence", () => {
+    const result = renderExport({
+      format: "wav",
+      destPath: "/tmp/mix.wav",
+      dither: "none",
+    });
+    const labels = result.steps.map((s) => s.label);
+
+    expect(labels).toContain("open Dither dropdown");
+    expect(labels).toContain("pick Dither 'No Dither' via visible list row");
+  });
+
+  it("PCM + dither omitted leaves the Dither dropdown alone (default Triangular)", () => {
+    const result = renderExport({
+      format: "wav",
+      destPath: "/tmp/mix.wav",
+    });
+    const labels = result.steps.map((s) => s.label);
+
+    expect(labels).not.toContain("open Dither dropdown");
+  });
+
+  it("PCM + dither='default' is equivalent to omitting it (no Dither step)", () => {
+    const result = renderExport({
+      format: "wav",
+      destPath: "/tmp/mix.wav",
+      dither: "default",
+    });
+    const labels = result.steps.map((s) => s.label);
+
+    expect(labels).not.toContain("open Dither dropdown");
+  });
+
+  it("destPath ending with '/' throws", () => {
+    expect(() =>
+      renderExport({ format: "wav", destPath: "/Users/x/out/" }),
+    ).toThrow(/destPath/);
   });
 
   it("normalize=true emits the Normalisieren toggle step", () => {

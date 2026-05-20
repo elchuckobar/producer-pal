@@ -287,6 +287,12 @@ export function appendSaveDialog(
  * @returns Object with dir and name.
  */
 export function splitDestPath(destPath: string): { dir: string; name: string } {
+  if (destPath.length === 0 || destPath.endsWith("/")) {
+    throw new Error(
+      `splitDestPath: destPath must include a filename (got: '${destPath}')`,
+    );
+  }
+
   const lastSlash = destPath.lastIndexOf("/");
 
   if (lastSlash < 0) {
