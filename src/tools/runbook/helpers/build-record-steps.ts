@@ -79,14 +79,20 @@ export function appendRecordArrangementSteps(
     label: "anchor: record started (lamp should be red)",
   });
 
-  if (opts.durationSeconds != null) {
-    steps.push({
-      action: "wait",
-      duration: opts.durationSeconds,
-      label: `record for ${opts.durationSeconds}s`,
-    });
+  // Only emit a wait + stop when the caller specified an explicit duration.
+  // Without durationSeconds the contract is "caller stops manually" - the
+  // recipe leaves the transport running and the save/final-screenshot steps
+  // are skipped (they only make sense once transport stopped). Schema
+  // description in record-arrangement.def.ts matches.
+  if (opts.durationSeconds == null) {
+    return;
   }
 
+  steps.push({
+    action: "wait",
+    duration: opts.durationSeconds,
+    label: `record for ${opts.durationSeconds}s`,
+  });
   steps.push({
     action: "key",
     text: "space",
