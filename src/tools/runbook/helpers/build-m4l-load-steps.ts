@@ -63,11 +63,15 @@ export function appendLoadM4lDeviceSteps(
   steps: RunbookStep[],
   opts: LoadOptions,
 ): void {
+  // We do NOT auto-press Tab. Tab toggles Session<->Arrangement, so a
+  // recipe-emitted Tab would silently flip the view if Live were already in
+  // Arrangement. Instead we emit a verify-screenshot anchor when the caller
+  // expressed a view preference; the caller dispatches Tab themselves after
+  // checking the screenshot.
   if (opts.useArrangementView) {
     steps.push({
-      action: "key",
-      text: "Tab",
-      label: "ensure Arrangement view",
+      action: "screenshot",
+      label: "anchor: caller must verify Arrangement view before drop",
     });
   }
 
@@ -86,10 +90,14 @@ export function appendLoadM4lDeviceSteps(
   appendSearchSteps(steps, opts.deviceName);
   appendDragDrop(steps, opts);
 
+  // NO automatic Escape after the drop. Fail-Mode 5 warns that a .amxd
+  // compile modal may appear post-drop; an auto-Escape would dismiss it
+  // against the recipe's own advice. The caller dispatches Escape after
+  // verifying the post-drop screenshot showed no modal.
   steps.push({
-    action: "key",
-    text: "Escape",
-    label: "clear browser search overlay",
+    action: "screenshot",
+    label:
+      "anchor: caller must verify no .amxd compile modal before dispatching Escape to clear search overlay",
   });
 }
 
@@ -156,10 +164,30 @@ function appendSearchSteps(steps: RunbookStep[], deviceName: string): void {
  * @param opts - Load options (drop target + intermediate stops).
  */
 function appendDragDrop(steps: RunbookStep[], opts: LoadOptions): void {
-  const drop: [number, number] = [
-    opts.dropX ?? BROWSER_ANCHORS.defaultDropTarget[0],
-    opts.dropY ?? BROWSER_ANCHORS.defaultDropTarget[1],
-  ];
+  // dropX/dropY must be set as a pair. A half-override (only one axis) would
+  // mix a new value with the set-dependent default on the other axis and
+  // silently land the drop on the wrong track. Reject the half-override so
+  // the caller catches the mistake at call time.
+  const hasX = opts.dropX != null;
+  const hasY = opts.dropY != null;
+
+  if (hasX !== hasY) {
+    throw new Error(
+      "ppal-load-m4l-device: dropX and dropY must be supplied as a pair (got dropX=" +
+        String(opts.dropX) +
+        ", dropY=" +
+        String(opts.dropY) +
+        ")",
+    );
+  }
+
+  const drop: [number, number] =
+    hasX && hasY
+      ? [opts.dropX as number, opts.dropY as number]
+      : [
+          BROWSER_ANCHORS.defaultDropTarget[0],
+          BROWSER_ANCHORS.defaultDropTarget[1],
+        ];
 
   steps.push({
     action: "mouse_move",

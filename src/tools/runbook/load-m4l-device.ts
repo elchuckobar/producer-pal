@@ -137,5 +137,12 @@ function buildFailModes(): FailMode[] {
       recovery:
         "Playbook §2 timing violated - check the 0.55s wait between mouse-down and the first move",
     },
+    {
+      symptom: "wrong device type matched (name collision across categories)",
+      detect:
+        "post-load device exists but is e.g. an Audio Effect when caller asked for an Instrument",
+      recovery:
+        "the three Max-for-Live sub-categories share the same browser anchor and rely on name uniqueness; rename one device or load it from User Library category instead",
+    },
   ];
 }

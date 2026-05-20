@@ -33,20 +33,20 @@ export const toolDefLoadM4lDevice = defineTool("ppal-load-m4l-device", {
       .int()
       .optional()
       .describe(
-        "explicit drop x coordinate; default targets the first regular track header anchor",
+        "explicit drop x coordinate. MUST be supplied together with dropY or both omitted - the recipe throws on a half-override (mixing one user axis with one set-dependent default lands the drop on the wrong track silently)",
       ),
     dropY: z.coerce
       .number()
       .int()
       .optional()
       .describe(
-        "explicit drop y coordinate; default targets the first regular track header anchor",
+        "explicit drop y coordinate. MUST be supplied together with dropX (see dropX)",
       ),
     useArrangementView: z
       .boolean()
       .optional()
       .describe(
-        "switch to Arrangement view first; default leaves current view",
+        "if true, recipe emits a verify-screenshot anchor before the drop; it does NOT auto-press Tab (Tab toggles, would be unsafe). Caller dispatches Tab themselves after checking the screenshot",
       ),
     abletonLocale: z
       .enum(["de", "en", "unknown"])
