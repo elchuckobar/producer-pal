@@ -79,6 +79,33 @@ describe("playback locator-nav actions", () => {
       );
       expect(liveSet.call).not.toHaveBeenCalledWith("jump_to_prev_cue");
     });
+
+    it("updates currentTime in result from re-read current_song_time", () => {
+      // MockSequence: pre-jump 16 beats, post-jump 8 beats (jumped backwards)
+      liveSet = setupPlaybackLiveSet({
+        can_jump_to_prev_cue: 1,
+        current_song_time: new MockSequence(16, 8),
+        signature_numerator: 4,
+        signature_denominator: 4,
+      });
+
+      const result = playback({ action: "jump-to-prev-cue" });
+
+      // 8 beats in 4/4 = bar 3, beat 1
+      expect(result.currentTime).toBe("3|1");
+    });
+
+    it("preserves is_playing state across jump", () => {
+      liveSet = setupPlaybackLiveSet({
+        is_playing: 1,
+        can_jump_to_prev_cue: 1,
+        current_song_time: 0,
+      });
+
+      const result = playback({ action: "jump-to-prev-cue" });
+
+      expect(result.playing).toBe(true);
+    });
   });
 
   describe("set-or-delete-cue", () => {
