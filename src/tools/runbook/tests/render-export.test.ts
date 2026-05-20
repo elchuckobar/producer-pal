@@ -71,77 +71,28 @@ describe("ppal-render-export runbook", () => {
     expect(labels.some((l) => l.startsWith("pick Datei-Typ "))).toBe(false);
   });
 
-  it("MP3 + bitDepth emits a warning note and ignores bitDepth", async () => {
-    const consoleModule = await import("#src/shared/v8-max-console.ts");
-    const warn = vi.spyOn(consoleModule, "warn").mockImplementation(() => {});
+  it("recipe never emits a Bit-Tiefe or Dither dropdown step (out-of-scope)", () => {
     const result = renderExport({
-      format: "mp3",
-      destPath: "/tmp/mix.mp3",
-      bitDepth: 24,
+      format: "wav",
+      destPath: "/tmp/mix.wav",
     });
-
-    expect(warn).toHaveBeenCalledWith(
-      expect.stringContaining("bitDepth ignored for mp3"),
-    );
-    expect(result.meta.notes).toContain(
-      "bitDepth ignored: mp3 is fixed CBR 320",
-    );
     const labels = result.steps.map((s) => s.label);
 
     expect(labels.some((l) => l.startsWith("open Bit-Tiefe"))).toBe(false);
-    warn.mockRestore();
+    expect(labels.some((l) => l.startsWith("open Dither"))).toBe(false);
   });
 
-  it("MP3 + dither='none' warns and ignores (mp3 has no dither stage)", async () => {
-    const consoleModule = await import("#src/shared/v8-max-console.ts");
-    const warn = vi.spyOn(consoleModule, "warn").mockImplementation(() => {});
-
-    const result = renderExport({
-      format: "mp3",
-      destPath: "/tmp/mix.mp3",
-      dither: "none",
-    });
-
-    expect(warn).toHaveBeenCalledWith(
-      expect.stringContaining("dither ignored for mp3"),
-    );
-    expect(result.meta.notes).toContain(
-      "dither ignored: only applies to PCM formats",
-    );
-    warn.mockRestore();
-  });
-
-  it("PCM (wav) + dither='none' emits the Dither dropdown sequence", () => {
-    const result = renderExport({
-      format: "wav",
-      destPath: "/tmp/mix.wav",
-      dither: "none",
-    });
-    const labels = result.steps.map((s) => s.label);
-
-    expect(labels).toContain("open Dither dropdown");
-    expect(labels).toContain("pick Dither 'No Dither' via visible list row");
-  });
-
-  it("PCM + dither omitted leaves the Dither dropdown alone (default Triangular)", () => {
+  it("meta.notes documents the bit-depth/dither out-of-scope decision", () => {
     const result = renderExport({
       format: "wav",
       destPath: "/tmp/mix.wav",
     });
-    const labels = result.steps.map((s) => s.label);
 
-    expect(labels).not.toContain("open Dither dropdown");
-  });
-
-  it("PCM + dither='default' is equivalent to omitting it (no Dither step)", () => {
-    const result = renderExport({
-      format: "wav",
-      destPath: "/tmp/mix.wav",
-      dither: "default",
-    });
-    const labels = result.steps.map((s) => s.label);
-
-    expect(labels).not.toContain("open Dither dropdown");
+    expect(
+      result.meta.notes.some((n) =>
+        n.startsWith("bitDepth + dither are not configurable"),
+      ),
+    ).toBe(true);
   });
 
   it("destPath ending with '/' throws", () => {
@@ -350,20 +301,5 @@ describe("ppal-render-export runbook", () => {
     const labels = result.steps.map((s) => s.label);
 
     expect(labels).toContain("toggle Als Loop rendern -> An");
-  });
-
-  it("bitDepth on a PCM format opens the Bit-Tiefe dropdown with a screenshot follow-up", () => {
-    const result = renderExport({
-      format: "wav",
-      destPath: "/tmp/m.wav",
-      bitDepth: 24,
-    });
-    const labels = result.steps.map((s) => s.label);
-
-    expect(labels).toContain("open Bit-Tiefe dropdown");
-    expect(labels).toContain("pick Bit-Tiefe 24 via visible list row");
-    expect(
-      result.meta.notes.some((n) => n.includes("bitDepth row click")),
-    ).toBe(true);
   });
 });

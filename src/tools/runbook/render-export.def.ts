@@ -26,11 +26,6 @@ export const toolDefRenderExport = defineTool("ppal-render-export", {
       .describe(
         "absolute output path including filename and extension; must not end with '/'",
       ),
-    bitDepth: z.coerce
-      .number()
-      .int()
-      .optional()
-      .describe("PCM bit depth: 16, 24, or 32; ignored for mp3"),
     renderStart: z
       .string()
       .optional()
@@ -52,12 +47,6 @@ export const toolDefRenderExport = defineTool("ppal-render-export", {
       .boolean()
       .optional()
       .describe("toggle 'Analyse-Datei erzeugen' (default: An)"),
-    dither: z
-      .enum(["default", "none"])
-      .optional()
-      .describe(
-        "PCM dither: 'none' emits a toggle step that disables the dither dropdown's default Triangular setting; 'default' (or omitted) leaves the dropdown alone. Only 16-bit PCM uses dither in Live; for other bit depths the step is still emitted but harmless. Use 'none' for stem renders that downstream gear redithers.",
-      ),
     abletonLocale: z
       .enum(["de", "en", "unknown"])
       .optional()
@@ -67,6 +56,6 @@ export const toolDefRenderExport = defineTool("ppal-render-export", {
   },
 
   smallModelModeConfig: {
-    excludeParams: ["dither", "createAnalysisFile", "asLoop", "abletonLocale"],
+    excludeParams: ["createAnalysisFile", "asLoop", "abletonLocale"],
   },
 });

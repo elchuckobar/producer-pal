@@ -3,7 +3,6 @@
 // AI assistance: Claude (Anthropic)
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-import * as console from "#src/shared/v8-max-console.ts";
 import {
   appendDialogOpen,
   appendFileTypeSelection,
@@ -17,7 +16,6 @@ import {
 interface RenderExportArgs {
   format: "wav" | "aiff" | "flac" | "mp3";
   destPath: string;
-  bitDepth?: number;
   renderStart?: string;
   renderLength?: string;
   includeReturnsAndMaster?: boolean;
@@ -25,7 +23,6 @@ interface RenderExportArgs {
   mono?: boolean;
   normalize?: boolean;
   createAnalysisFile?: boolean;
-  dither?: "default" | "none";
   abletonLocale?: "de" | "en" | "unknown";
 }
 
@@ -70,22 +67,6 @@ const BASE_RENDER_SECONDS = 6;
 export function renderExport(args: RenderExportArgs): RenderExportResult {
   const notes: string[] = [];
   const steps: RunbookStep[] = [];
-
-  if (args.format === "mp3" && args.bitDepth != null) {
-    console.warn(
-      "ppal-render-export: bitDepth ignored for mp3 (CBR 320 is fixed)",
-    );
-    notes.push("bitDepth ignored: mp3 is fixed CBR 320");
-  }
-
-  if (
-    args.format === "mp3" &&
-    args.dither != null &&
-    args.dither !== "default"
-  ) {
-    console.warn("ppal-render-export: dither ignored for mp3");
-    notes.push("dither ignored: only applies to PCM formats");
-  }
 
   if (args.destPath.endsWith("/")) {
     throw new Error(
@@ -136,43 +117,17 @@ export function renderExport(args: RenderExportArgs): RenderExportResult {
 
   appendFileTypeSelection(steps, { format: args.format });
 
-  if (args.format !== "mp3" && args.dither === "none") {
-    // Live's PCM dither dropdown defaults to Triangular. Clicking it opens the
-    // persistent list (same Live-quirk as Datei-Typ). Without per-row anchors
-    // captured in recon, we leave the row click as a screenshot prompt.
-    steps.push({
-      action: "left_click",
-      coordinate: RENDER_DIALOG_ANCHORS.ditherDropdown,
-      label: "open Dither dropdown",
-    });
-    steps.push({
-      action: "screenshot",
-      label: "pick Dither 'No Dither' via visible list row",
-    });
-    notes.push(
-      "dither row click left to screenshot-driven follow-up (recon did not capture per-row y offsets)",
-    );
-  }
-
-  if (args.format !== "mp3" && args.bitDepth != null) {
-    // For now we open the dropdown header; downstream callers can adopt the
-    // same persistent-dropdown click pattern as fileType. Without explicit
-    // list-row anchors, we leave the row click as a screenshot prompt so the
-    // caller's vision pass picks it up. This deliberate "human-in-the-loop"
-    // escape hatch is documented in the spec under R3.
-    steps.push({
-      action: "left_click",
-      coordinate: RENDER_DIALOG_ANCHORS.bitDepthDropdown,
-      label: "open Bit-Tiefe dropdown",
-    });
-    steps.push({
-      action: "screenshot",
-      label: `pick Bit-Tiefe ${args.bitDepth} via visible list row`,
-    });
-    notes.push(
-      "bitDepth row click left to screenshot-driven follow-up (recon did not capture per-row y offsets)",
-    );
-  }
+  // bitDepth and dither are intentionally OUT-OF-SCOPE for this runbook. Per-
+  // row pixel anchors were not captured in the 2026-05-20 recon, and emitting
+  // only an "open dropdown" step left the previous Live default selected
+  // (Codex Stage-2 IMPORTANT: silent wrong-format render). The caller must
+  // configure bit depth and dither in Live's Export dialog manually before
+  // invoking this runbook, or wait for a follow-up slice that recons the row
+  // anchors. The current recipe accepts whatever Live remembers from the
+  // previous session.
+  notes.push(
+    "bitDepth + dither are not configurable via this runbook - set them in the Export dialog manually before calling, or wait for a follow-up recon slice",
+  );
 
   appendSaveDialog(steps, { destPath: args.destPath });
 
